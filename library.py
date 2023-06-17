@@ -1,3 +1,29 @@
+import psycopg2
+class database:
+   def __init__(self):
+    self.conn = psycopg2.connect(
+        PGDATABASE = "railway",
+        PGHOST = "containers-us-west-22.railway.app",
+        PGPASSWORD = "DW0OLFxKHv65MjGdtUY4",
+        PGPORT = "5760",
+        PGUSER = "postgres"
+        )
+    self.cur = conn.cursor()
+    def execute(self,query,PARAM=None,which_query='r'):
+        try:
+            self.cursor.execute(query,PARAM)
+        except:
+            print('Oops..something went wrong.',query)
+        finally:
+            if which_query=='r':
+                print(cur.fetchall())
+            if which_query=='w':
+               conn.commit()
+               print('The query was successful!') 
+            else:
+                print('Oops..something went wrong.')
+    def close(self):
+         self.connection.close()
 class Book:
     def __init__(self, title, author):
         self.title = title
@@ -14,6 +40,11 @@ class Member:
         self.member_id = member_id
         self.borrowed_books = []
 
+    def get_borrowed_books(self,database):
+        query= f"SELECT * FROM borrowed_books WHERE member_id={self.member_id}"
+        try:   
+    
+    
     def borrow_book(self, book):
         if book.status == 'available':
             book.status = 'borrowed'
@@ -102,3 +133,4 @@ class Library:
 
     def display_all_members(self):
         print('\n'.join(str(member) for member in self.members))
+
