@@ -3,13 +3,14 @@ import os
 import psycopg2
 from psycopg2 import Error
 
+
 load_dotenv()
 
-DB_HOST = os.getenv('containers-us-west-62.railway.app')
-DB_NAME = os.getenv('railway')
-DB_USER = os.getenv('postgres')
-DB_PASS = os.getenv('xsxLOBFrhBjsG75Fgjhn')
-DB_PORT = os.getenv('7802')
+DB_HOST = os.getenv('HOST')
+DB_NAME = os.getenv('DATABASE')
+DB_USER = os.getenv('DB_USER')
+DB_PASS = os.getenv('PASS')
+DB_PORT = os.getenv('PORT')
 
 try:
     connection = psycopg2.connect(
@@ -33,3 +34,8 @@ finally:
             connection.close()
     except NameError:
         pass
+
+
+
+
+

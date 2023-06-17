@@ -1,14 +1,26 @@
+from dotenv import load_dotenv
+import os
 import psycopg2
-class database:
+from psycopg2 import Error
+
+load_dotenv()
+
+DB_HOST = os.getenv('HOST')
+DB_NAME = os.getenv('DATABASE')
+DB_USER = os.getenv('DB_USER')
+DB_PASS = os.getenv('PASS')
+DB_PORT = os.getenv('PORT')
+
+class Database:
    def __init__(self):
     self.conn = psycopg2.connect(
-        PGDATABASE = "railway",
-        PGHOST = "containers-us-west-22.railway.app",
-        PGPASSWORD = "DW0OLFxKHv65MjGdtUY4",
-        PGPORT = "5760",
-        PGUSER = "postgres"
+       host=DB_HOST,
+        database=DB_NAME,
+        user=DB_USER,
+        password=DB_PASS,
+        port=DB_PORT
         )
-    self.cur = conn.cursor()
+    self.cur = self.conn.cursor()
     def execute(self,query,PARAM=None,which_query='r'):
         try:
             self.cursor.execute(query,PARAM)
@@ -16,9 +28,9 @@ class database:
             print('Oops..something went wrong.',query)
         finally:
             if which_query=='r':
-                print(cur.fetchall())
+                print(self.cur.fetchall())
             if which_query=='w':
-               conn.commit()
+               self.conn.commit()
                print('The query was successful!') 
             else:
                 print('Oops..something went wrong.')
@@ -42,7 +54,7 @@ class Member:
 
     def get_borrowed_books(self,database):
         query= f"SELECT * FROM borrowed_books WHERE member_id={self.member_id}"
-        try:   
+    #try:   
     
     
     def borrow_book(self, book):
@@ -134,3 +146,6 @@ class Library:
     def display_all_members(self):
         print('\n'.join(str(member) for member in self.members))
 
+database = Database()
+library = Library()
+library.add_book('lfsefejslkjf', 'slfhlesf')
