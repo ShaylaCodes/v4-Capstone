@@ -6,7 +6,7 @@ from psycopg2 import Error
 
 load_dotenv()
 
-DB_HOST = os.getenv('HOST')
+DB_HOST = os.getenv('containers-us-west-62.railway.app')
 DB_NAME = os.getenv('DATABASE')
 DB_USER = os.getenv('DB_USER')
 DB_PASS = os.getenv('PASS')

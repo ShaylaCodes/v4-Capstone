@@ -5,11 +5,11 @@ from psycopg2 import Error
 
 load_dotenv()
 
-DB_HOST = os.getenv('HOST')
-DB_NAME = os.getenv('DATABASE')
+DB_HOST = os.getenv('DB_HOST')
+DB_NAME = os.getenv('DB_NAME')
 DB_USER = os.getenv('DB_USER')
-DB_PASS = os.getenv('PASS')
-DB_PORT = os.getenv('PORT')
+DB_PASS = os.getenv('DB_PASS')
+DB_PORT = os.getenv('DB_PORT')
 
 class Database:
    def __init__(self):
@@ -153,28 +153,59 @@ class Member:
 
 class Library:
     def __init__(self):
-        self.catalog = []
-        self.members = []
+        self.catalog = query = """
+        SELECT Books FROM library;
+        """
+        self.cursor.execute(query)
+        self.conn.commit()
+        print(self.cur.fetchall())
 
-    def add_book(self, title, author):
+
+        self.members = query = """
+        SELECT members * from library
+        """
+        self.cursor.execute(query)
+        self.conn.commit()
+        print(self.cur.fetchall())
+
+
+    def add_book(self, title, author, query):
         book = Book(title, author)
         self.catalog.append(book)
         print(f'{book.title} was added to the catalog.')
 
-    def remove_book(self, title):
+        query = """
+        INSERT INTO Book (author, title, status)
+        VALUES (add_book);
+        """
+        self.cursor.execute(query)
+        self.conn.commit()
+
+    def remove_book(self, title, query):
         for book in self.catalog:
             if book.title == title:
                 self.catalog.remove(book)
                 print(f'{book.title} was removed from the catalog.')
                 return
         print(f'Book not found.')
-
-    def register_member(self, name, member_id):
+        query = """
+        "DELETE FROM Books WHERE title = input('book being removed')";
+        """
+        self.cursor.execute(query)
+        self.conn.commit()
+    
+    def register_member(self, name, member_id, query):
         member = Member(name, member_id)
         self.members.append(member)
         print(f'{member.name} was registered.')
+        query = """
+        "INSERT INTO member (name, member_id)
+        VALUES (adding_member));
+        """
+        self.cursor.execute(query)
+        self.conn.commit()
 
-    def borrow_book(self, member_id, title):
+    def borrow_book(self, member_id, title, query):
         member = None
         for m in self.members:
             if m.member_id == member_id:
@@ -193,7 +224,13 @@ class Library:
         else:
             print(f'Member not found.')
 
-    def return_book(self, member_id, title):
+        self.query = """
+        "member"
+        """
+        self.cursor.execute(query)
+        self.conn.commit()
+
+    def return_book(self, member_id, title, query):
         member = None
         for m in self.members:
             if m.member_id == member_id:
@@ -210,7 +247,13 @@ class Library:
             else:
                 print(f'Book not found.')
         else:
+
             print(f'Member not found.')
+        self.query = """
+        "member"
+        """
+        self.cursor.execute(query)
+        self.conn.commit()
 
     def display_all_books(self):
         print('\n'.join(str(book) for book in self.catalog))
