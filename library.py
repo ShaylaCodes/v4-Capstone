@@ -7,31 +7,34 @@ import numpy as np
 import datetime
 
 load_dotenv()
+
 DB_HOST =os.getenv('DB_HOST')
 DB_NAME =os.getenv('DB_DATABASE')
-DB_USER =os.getenv('DB_USER')
 DB_PASSWORD=os.getenv('DB_PASSWORD')
+DB_USER =os.getenv('DB_USER')
 DB_PORT =os.getenv('DB_PORT')
 
 class Database:
     def __init__(self):
         self.conn = psycopg2.connect(
-        host=DB_HOST,
+            host=DB_HOST,
             database=DB_NAME,
             user=DB_USER,
             password=DB_PASSWORD,
             port=DB_PORT
             )
+        print( DB_HOST, DB_NAME, DB_USER, DB_PASSWORD, DB_PORT)
         self.cur = self.conn.cursor()
 
     def execute(self,query,PARAM=None,which_query='r'):
         try:
-            self.cursor.execute(query,PARAM)
-        except:
+            self.cur.execute(query,PARAM)
+        except (Exception, psycopg2.DatabaseError) as error:
             print('Oops..something went wrong.',query)
+            print(error)
         finally:
             if which_query=='r':
-                print(self.cur.fetchall())
+                return self.cur.fetchall()
             if which_query=='w':
                self.conn.commit()
                print('The query was successful!') 
@@ -41,7 +44,8 @@ class Database:
         self.conn.close()
 
 class Book:
-    def __init__(self, title, author, status):
+    def __init__(self, title, author, category, status):
+        self.category = category
         self.title = title
         self.author = author
         self.status = status
@@ -49,39 +53,46 @@ class Book:
         return f'Title: {self.title}, Author: {self.author}, Status: {self.status}'
 
 class Member:
-    def __init__(self, name, member_id, database):
+    def __init__(self, member_id, first_name, last_name, join_date, database):
         self.database = database
-        self.name = name
+        self.name = f'{first_name} {last_name}'
         self.member_id = member_id
-        self.borrowed_books = []
+        self.borrowed_books = self.get_borrowed_books()
+        self.join_date = join_date
 
-    def get_borrowed_books(self,book):
+    def get_borrowed_books(self):
         query= f"SELECT * FROM borrowed_books WHERE member_id={self.member_id}"
-        if book.status =='borrowed':
-            print(self.title,'has been borrowed by',self.name)
-        else:
-            print("Books is available", self.title,'by',self.author)
+        borrowed_books = self.database.execute(query)
+        for book in borrowed_books:
+            self.borrowed_books.append(book.book_id)
+
+
 
     def borrow_book(self, book):
-        if book.status == 'available':
-            book.status = 'borrowed'
+        if book.status == 'Available':
+            book.status = 'Checked Out'
             self.borrowed_books.append(book)
             print(f'{self.name} borrowed {book.title}.')
+            #sql query to change the status of the book
             query = f"""
             UPDATE books
             SELECT status FROM books WHERE book.id = {book.id}
-            SET status = 'borrowed'
+            SET status = 'Checked Out'
             """
-            #sql query to change the status of the book
             #sql query to add a record to borrow books table
+            query = f"""
+            INSERT INTO borrowed_books (member_id, book_id, borrow_date)
+            VALUES ({self.member_id}, {book.id}, {datetime.datetime.now()})
+            """
         else:
             print(f'This book is currently borrowed by someone else.')
     
     def return_book(self, book):
         if book in self.borrowed_books:
-            book.status = 'available'
+            book.status = 'Available'
             self.borrowed_books.remove(book)
             print(f'{self.name} returned {book.title}.')
+
         else:
             print(f'{self.name} did not borrow {book.title}.')
 
@@ -148,29 +159,31 @@ class Library:
     
     def __init__(self,database):
         self.database = database 
-        self.catalog = database.execute("""
-        SELECT * FROM books;
-        """)
+        self.catalog = self.get_books()
         
-        self.members = database.execute("""
-        SELECT first_name, last_name FROM library_members;
-        """)
+        self.members = self.get_members()
 
-    def get_books(self, database):
-        books_data = database.execute("SELECT * FROM books")
-        print(books_data)
-        books = [Book(book_id, title, author, category, status)
-        for book_id, title, author, category, status in books_data]
-        return books
+    def get_books(self):
+        books_data = self.database.execute("SELECT * FROM books")
+        books = []
+        for book in books_data:
+            books.append(Book(book[0], book[1], book[2], book[3]))  # Append each book to the books list
+        return books  # Return the list of books
+
+
+    def get_members(self):
+        members_data = self.database.execute("SELECT * FROM library_members")
+        for member in members_data:
+            return Member(member[0], member[1], member[2], member[3], database)
 
     def add_book(self, title, author, category):
-        book = Book(title, author)
+        book = Book(title, author, category, 'Available')
         self.catalog.append(book)
         print(f'{book.title} was added to the catalog.')
-        database.execute(f"""
+        self.database.execute(f"""
         INSERT INTO Books (author, title, status, category)
-        VALUES ({author}, {title}, "available", {category});
-        """)
+        VALUES ('{author}', '{title}', 'available', '{category}');
+        """, which_query='w')
 
     def remove_book(self, title):
         for book in self.catalog:
@@ -179,7 +192,7 @@ class Library:
                 print(f'{book.title} was removed from the catalog.')
                 return
         print(f'Book not found.')
-        database.execute("""
+        self.database.execute("""
         "DELETE FROM Books WHERE title = input('book being removed')";
         """)
     
@@ -247,4 +260,4 @@ class Library:
 
 database = Database()
 library = Library(database)
-library.add_book('lfsefejslkjf', 'slfhlesf')
+library.add_book('lfsefejslkjf', 'slfhlesf', 'category')
