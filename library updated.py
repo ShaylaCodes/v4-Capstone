@@ -2,14 +2,16 @@ from dotenv import load_dotenv
 import os
 import psycopg2
 from psycopg2 import Error
+import matplotlib.pyplot as plt 
+import numpy as np 
 
 load_dotenv()
 
-DB_HOST = os.getenv('HOST')
-DB_NAME = os.getenv('DATABASE')
-DB_USER = os.getenv('DB_USER')
-DB_PASS = os.getenv('PASS')
-DB_PORT = os.getenv('PORT')
+DB_HOST =os.getenv('HOST')
+DB_NAME =os.getenv('DATABASE')
+DB_USER =os.getenv('USER')
+DB_PASS =os.getenv('PASSWORD')
+DB_PORT =os.getenv('PORT')
 
 class Database:
    def __init__(self):
@@ -64,14 +66,14 @@ class Member:
             print(f'{self.name} borrowed {book.title}.')
         else:
             print(f'This book is currently borrowed by someone else.')
-
+    # Data Analysis 
     def number_of_borrowed_books(self,query): 
         query="""SELECT DATE_FORMAT(borrow_date. '%Y-%m') AS date,COUNT(*) AS num_borrowed_books
         FROM borrowed_books
         GROUP by month 
         GROUP by month"""
         self.cursor.execute(query) 
-        result = self.cursor.fetchall()
+        results = self.cursor.fetchall()
         return results 
     
     def num_active_members(self,query): 
@@ -134,8 +136,56 @@ class Member:
         self.cursor.execute(query) 
         results = self.cursor.fetchall()
         return results 
+    # Graphing (Data Visualization)
+    def num_books_borrow_line(self):
+        x=()
+        y=()
+        plt.plot()
+        plt.xlabel()
+        plt.ylabel
+        plt.title
+        return plt.show() 
     
-
+    def num_active_members_line(self): 
+        x=()
+        y=()
+        plt.plot()
+        plt.xlabel()
+        plt.ylabel()
+        plt.title() 
+        return plt.show() 
+    
+    def num_books_borrowed_category(self): 
+        x=()
+        y=()
+        plt.plot()
+        plt.xlabel()
+        plt.ylabel()
+        plt.title()
+        return plt.show() 
+    
+    def frequently_borrowed_books_histogram(self): 
+        x = np.array([])
+        fig, ax= plt.subplot(figsize=())
+        ax.hist(x,bins=[])
+        return plt.show() 
+    
+    def num_books_borrowed_top3_active(self): 
+        x=()
+        y=()
+        plt.bar() 
+        plt.xlabel()
+        plt.ylabel()
+        plt.title()
+        return plt.show() 
+    def most_active_member(self): 
+        x=() 
+        y=() 
+        plt.barh() 
+        plt.xlabel() 
+        plt.ylabel() 
+        plt.title() 
+        return plt.show() 
 
     def return_book(self, book):
         if book in self.borrowed_books:
@@ -185,7 +235,7 @@ class Library:
             for b in self.catalog:
                 if b.title == title:
                     book = b
-                    break
+            
             if book is not None:
                 member.borrow_book(book)
             else:
