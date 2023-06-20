@@ -9,7 +9,7 @@ import datetime
 load_dotenv()
 
 DB_HOST =os.getenv('DB_HOST')
-DB_NAME =os.getenv('DB_DATABASE')
+DB_NAME =os.getenv('DB_NAME')
 DB_PASSWORD=os.getenv('DB_PASSWORD')
 DB_USER =os.getenv('DB_USER')
 DB_PORT =os.getenv('DB_PORT')
@@ -65,6 +65,7 @@ class Member:
         borrowed_books = self.database.execute(query)
         for book in borrowed_books:
             self.borrowed_books.append(book.book_id)
+            return borrowed_books
 
 
 
@@ -100,7 +101,7 @@ class Member:
         borrowed_titles = ', '.join(
             [book.title for book in self.borrowed_books])
         return f'Member Name: {self.name}, Member ID: {self.member_id}, Borrowed Books: {borrowed_titles}'
-    
+         
     def number_of_borrowed_books(self,query): 
         query="""
         SELECT DATE_FORMAT(borrow_date,'%%Y-%%m') AS date,COUNT(*) AS num_borrowed_books
@@ -157,6 +158,29 @@ class Member:
 
 class Library:
     
+    def num_books_borrowed_top3_active(self): 
+       # COUNT(member_id) to count number of books borrowed from table.
+        member_ids = [self.member_id[6],self.member_id[7],self.member_id[12]]
+        num_books_borrowed=[]
+        for member_id in member_ids:
+            query = f"""
+            COUNT(member_id) AS num_borrowed_books
+            FROM borrowed_books 
+            WHERE member_id = {member_id}
+        """
+        results = self.database.execute(query)
+        if results:
+              num_books_borrowed.append(results[0][0])
+        else:
+              num_books_borrowed.append(0)
+
+        plt.bar(member_ids,num_books_borrowed) 
+        plt.xlabel("Top 3 Members")
+        plt.ylabel("Books Borrowed")
+        plt.title("Top 3 active members")
+        plt.savefig('bar_plot.svg',format='svg')
+        plt.show()
+        self.cur.execute()
     def __init__(self,database):
         self.database = database 
         self.catalog = self.get_books()
@@ -260,4 +284,4 @@ class Library:
 
 database = Database()
 library = Library(database)
-library.add_book('lfsefejslkjf', 'slfhlesf', 'category')
+
