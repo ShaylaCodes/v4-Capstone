@@ -4,6 +4,7 @@ import psycopg2
 from psycopg2 import Error
 import matplotlib.pyplot as plt 
 import numpy as np 
+import datetime
 
 load_dotenv()
 DB_HOST =os.getenv('DB_HOST')
@@ -13,15 +14,16 @@ DB_PASSWORD=os.getenv('DB_PASSWORD')
 DB_PORT =os.getenv('DB_PORT')
 
 class Database:
-   def __init__(self):
-    self.conn = psycopg2.connect(
-       host=DB_HOST,
-        database=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        port=DB_PORT
-        )
-    self.cur = self.conn.cursor()
+    def __init__(self):
+        self.conn = psycopg2.connect(
+        host=DB_HOST,
+            database=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            port=DB_PORT
+            )
+        self.cur = self.conn.cursor()
+
     def execute(self,query,PARAM=None,which_query='r'):
         try:
             self.cursor.execute(query,PARAM)
@@ -29,31 +31,31 @@ class Database:
             print('Oops..something went wrong.',query)
         finally:
             if which_query=='r':
-                print(self.cursor.fetchall())
+                print(self.cur.fetchall())
             if which_query=='w':
                self.conn.commit()
                print('The query was successful!') 
             else:
                 print('Oops..something went wrong.')
     def __del__(self):
-        self.connection.close()
+        self.conn.close()
 
 class Book:
-    def __init__(self, title, author):
+    def __init__(self, title, author, status):
         self.title = title
         self.author = author
-        self.status = 'available'
-
+        self.status = status
     def __str__(self):
         return f'Title: {self.title}, Author: {self.author}, Status: {self.status}'
 
 class Member:
-    def __init__(self, name, member_id):
+    def __init__(self, name, member_id, database):
+        self.database = database
         self.name = name
         self.member_id = member_id
         self.borrowed_books = []
 
-    def get_borrowed_books(self,database,book):
+    def get_borrowed_books(self,book):
         query= f"SELECT * FROM borrowed_books WHERE member_id={self.member_id}"
         if book.status =='borrowed':
             print(self.title,'has been borrowed by',self.name)
@@ -65,6 +67,13 @@ class Member:
             book.status = 'borrowed'
             self.borrowed_books.append(book)
             print(f'{self.name} borrowed {book.title}.')
+            query = f"""
+            UPDATE books
+            SELECT status FROM books WHERE book.id = {book.id}
+            SET status = 'borrowed'
+            """
+            #sql query to change the status of the book
+            #sql query to add a record to borrow books table
         else:
             print(f'This book is currently borrowed by someone else.')
     
@@ -87,9 +96,6 @@ class Member:
         FROM borrowed_books
         GROUP BY DATE_FORMAT(borrow_date,'%Y-%m')
         """
-        self.cursor.execute(query) 
-        results = self.cursor.fetchall()
-        return results 
     
     def num_active_members(self,query): 
         query="""
@@ -98,9 +104,6 @@ class Member:
         WHERE borrow_date <= return_date AND (return_date IS NULL OR return_date>= DATE_FORMAT(borrow_date, '%%Y-%%m-01'))
         GROUP BY month 
         """
-        self.cursor.execute(query) 
-        results = self.cursor.fetchall() 
-        return results 
     
     def num_books_per_category(self,query):
         query="""
@@ -109,9 +112,6 @@ class Member:
         JOIN borrowed_books bb ON books = bb.books
         GROUP BY c.name_category: 
         """
-        self.cursor.exectue(query) 
-        results = self.cursor.fetchall()
-        return results 
 
     def top_3_borrowed_books(self,query): 
         query ="""
@@ -122,9 +122,6 @@ class Member:
         GROUP BY borrow_count DESC 
         LIMIT 3;
         """
-        self.cursor.execute(query) 
-        results = self.cursor.fetchall()
-        return results 
     
     def top_3_active_members(self,query): 
         query = """
@@ -136,9 +133,6 @@ class Member:
         GROUP BY borrowed_books DESC 
         LIMIT 3;
         """ 
-        self.cursor.exectte(query) 
-        results = self.cursor.fetchall()
-        return results 
     
     def most_active_member(self,query): 
         query ="""
@@ -149,71 +143,58 @@ class Member:
         GROUP BY borrowed_books DESC
         LIMIT 1;
         """
-        self.cursor.execute(query) 
-        results = self.cursor.fetchall()
-        return results 
 
 class Library:
     
     def __init__(self,database):
         self.database = database 
-        self.catalog = query = """
-        SELECT Books FROM library;
-        """
-        self.cursor.execute(query)
-        self.conn.commit()
-        print(self.cur.fetchall())
-
-        self.members = query = """
-        SELECT members * from library
-        """
-        self.cursor.execute(query)
-        self.conn.commit()
-        print(self.cur.fetchall())
+        self.catalog = database.execute("""
+        SELECT * FROM books;
+        """)
+        
+        self.members = database.execute("""
+        SELECT first_name, last_name FROM library_members;
+        """)
 
     def get_books(self, database):
-        books_data = database.execute("SELECT * FROM books", flag='r')
+        books_data = database.execute("SELECT * FROM books")
         print(books_data)
         books = [Book(book_id, title, author, category, status)
         for book_id, title, author, category, status in books_data]
         return books
 
-    def add_book(self, title, author, query):
+    def add_book(self, title, author, category):
         book = Book(title, author)
         self.catalog.append(book)
         print(f'{book.title} was added to the catalog.')
-        query = """
-        INSERT INTO Book (author, title, status)
-        VALUES (add_book);
-        """
-        self.cursor.execute(query)
-        self.conn.commit()
+        database.execute(f"""
+        INSERT INTO Books (author, title, status, category)
+        VALUES ({author}, {title}, "available", {category});
+        """)
 
-    def remove_book(self, title, query):
+    def remove_book(self, title):
         for book in self.catalog:
             if book.title == title:
                 self.catalog.remove(book)
                 print(f'{book.title} was removed from the catalog.')
                 return
         print(f'Book not found.')
-        query = """
+        database.execute("""
         "DELETE FROM Books WHERE title = input('book being removed')";
-        """
-        self.cursor.execute(query)
-        self.conn.commit()
+        """)
     
-    def register_member(self, name, member_id, query):
+    def register_member(self, name, member_id):
         member = Member(name, member_id)
         self.members.append(member)
         print(f'{member.name} was registered.')
-        query = """
-        "INSERT INTO member (name, member_id)
-        VALUES (adding_member));
-        """
-        self.cursor.execute(query)
-        self.conn.commit()
+        [first_name, last_name] = name.split(" ")
+        database.execute(f"""
+        "INSERT INTO library_members (first_name, last_name, join_date)
+        VALUES ({first_name}, {last_name}, {datetime.now()});
+        """)
 
-    def borrow_book(self, member_id, title, query):
+    def borrow_book(self, member_id, title):
+        
         member = None
         for m in self.members:
             if m.member_id == member_id:
@@ -232,11 +213,9 @@ class Library:
         else:
             print(f'Member not found.')
 
-        self.query = """
-        "member"
-        """
-        self.cursor.execute(query)
-        self.conn.commit()
+        database.execute ( """
+        "INSERT INTO borrowed_books"
+        """)
 
     def return_book(self, member_id, title):
         member = None
@@ -256,6 +235,9 @@ class Library:
                 print(f'Book not found.')
         else:
             print(f'Member not found.')
+        database.execute ("""
+        "member"
+        """)
 
     def display_all_books(self):
         print('\n'.join(str(book) for book in self.catalog))
