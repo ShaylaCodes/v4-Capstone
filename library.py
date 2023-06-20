@@ -2,14 +2,15 @@ from dotenv import load_dotenv
 import os
 import psycopg2
 from psycopg2 import Error
+import matplotlib.pyplot as plt 
+import numpy as np 
 
 load_dotenv()
-
-DB_HOST = os.getenv('HOST')
-DB_NAME = os.getenv('DATABASE')
-DB_USER = os.getenv('DB_USER')
-DB_PASS = os.getenv('PASS')
-DB_PORT = os.getenv('PORT')
+DB_HOST =os.getenv('DB_HOST')
+DB_NAME =os.getenv('DB_DATABASE')
+DB_USER =os.getenv('DB_USER')
+DB_PASSWORD=os.getenv('DB_PASSWORD')
+DB_PORT =os.getenv('DB_PORT')
 
 class Database:
    def __init__(self):
@@ -17,7 +18,7 @@ class Database:
        host=DB_HOST,
         database=DB_NAME,
         user=DB_USER,
-        password=DB_PASS,
+        password=DB_PASSWORD,
         port=DB_PORT
         )
     self.cur = self.conn.cursor()
@@ -28,14 +29,15 @@ class Database:
             print('Oops..something went wrong.',query)
         finally:
             if which_query=='r':
-                print(self.cur.fetchall())
+                print(self.cursor.fetchall())
             if which_query=='w':
                self.conn.commit()
                print('The query was successful!') 
             else:
                 print('Oops..something went wrong.')
-    def close(self):
-         self.connection.close()
+    def __del__(self):
+        self.connection.close()
+
 class Book:
     def __init__(self, title, author):
         self.title = title
@@ -45,18 +47,19 @@ class Book:
     def __str__(self):
         return f'Title: {self.title}, Author: {self.author}, Status: {self.status}'
 
-
 class Member:
     def __init__(self, name, member_id):
         self.name = name
         self.member_id = member_id
         self.borrowed_books = []
 
-    def get_borrowed_books(self,database):
+    def get_borrowed_books(self,database,book):
         query= f"SELECT * FROM borrowed_books WHERE member_id={self.member_id}"
-        
-    
-    
+        if book.status =='borrowed':
+            print(self.title,'has been borrowed by',self.name)
+        else:
+            print("Books is available", self.title,'by',self.author)
+
     def borrow_book(self, book):
         if book.status == 'available':
             book.status = 'borrowed'
@@ -64,22 +67,35 @@ class Member:
             print(f'{self.name} borrowed {book.title}.')
         else:
             print(f'This book is currently borrowed by someone else.')
+    
+    def return_book(self, book):
+        if book in self.borrowed_books:
+            book.status = 'available'
+            self.borrowed_books.remove(book)
+            print(f'{self.name} returned {book.title}.')
+        else:
+            print(f'{self.name} did not borrow {book.title}.')
 
+    def __str__(self):
+        borrowed_titles = ', '.join(
+            [book.title for book in self.borrowed_books])
+        return f'Member Name: {self.name}, Member ID: {self.member_id}, Borrowed Books: {borrowed_titles}'
+    
     def number_of_borrowed_books(self,query): 
-        query="""SELECT DATE_FORMAT(borrow_date. '%Y-%m') AS date,COUNT(*) AS num_borrowed_books
+        query="""
+        SELECT DATE_FORMAT(borrow_date,'%%Y-%%m') AS date,COUNT(*) AS num_borrowed_books
         FROM borrowed_books
-        GROUP by month 
-        GROUP by month"""
+        GROUP BY DATE_FORMAT(borrow_date,'%Y-%m')
+        """
         self.cursor.execute(query) 
-        result = self.cursor.fetchall()
+        results = self.cursor.fetchall()
         return results 
     
     def num_active_members(self,query): 
         query="""
         SELECT DATE_FORMAT(borrow_date,'%%Y-%%m') AS month, COUNT(*) AS active_members
         FROM borrowed_books
-        WHERE borrow_date <= return_date(borrow_date) AND (return_date IS NULL OR return_date>= DATE_FORMAT(borrow_date, '%%Y-%%m-01'))
-        GROUP BY month 
+        WHERE borrow_date <= return_date AND (return_date IS NULL OR return_date>= DATE_FORMAT(borrow_date, '%%Y-%%m-01'))
         GROUP BY month 
         """
         self.cursor.execute(query) 
@@ -109,6 +125,7 @@ class Member:
         self.cursor.execute(query) 
         results = self.cursor.fetchall()
         return results 
+    
     def top_3_active_members(self,query): 
         query = """
         SELECT m.member_id, m.first_name, m.last_name, COUNT(*) AS borrowed_books 
@@ -122,6 +139,7 @@ class Member:
         self.cursor.exectte(query) 
         results = self.cursor.fetchall()
         return results 
+    
     def most_active_member(self,query): 
         query ="""
         SELECT m.member_id, m.first_name, m.last_name, COUNT(*) AS borrowed_books 
@@ -134,32 +152,17 @@ class Member:
         self.cursor.execute(query) 
         results = self.cursor.fetchall()
         return results 
-    
-
-
-    def return_book(self, book):
-        if book in self.borrowed_books:
-            book.status = 'available'
-            self.borrowed_books.remove(book)
-            print(f'{self.name} returned {book.title}.')
-        else:
-            print(f'{self.name} did not borrow {book.title}.')
-
-    def __str__(self):
-        borrowed_titles = ', '.join(
-            [book.title for book in self.borrowed_books])
-        return f'Member Name: {self.name}, Member ID: {self.member_id}, Borrowed Books: {borrowed_titles}'
-
 
 class Library:
-    def __init__(self):
+    
+    def __init__(self,database):
+        self.database = database 
         self.catalog = query = """
         SELECT Books FROM library;
         """
         self.cursor.execute(query)
         self.conn.commit()
         print(self.cur.fetchall())
-
 
         self.members = query = """
         SELECT members * from library
@@ -168,12 +171,17 @@ class Library:
         self.conn.commit()
         print(self.cur.fetchall())
 
+    def get_books(self, database):
+        books_data = database.execute("SELECT * FROM books", flag='r')
+        print(books_data)
+        books = [Book(book_id, title, author, category, status)
+        for book_id, title, author, category, status in books_data]
+        return books
 
     def add_book(self, title, author, query):
         book = Book(title, author)
         self.catalog.append(book)
         print(f'{book.title} was added to the catalog.')
-
         query = """
         INSERT INTO Book (author, title, status)
         VALUES (add_book);
@@ -253,8 +261,8 @@ class Library:
         print('\n'.join(str(book) for book in self.catalog))
 
     def display_all_members(self):
-        print('\n'.join(str(member) for member in self.members))
+        print('\n'.join(str(member) for member in self.members))      
 
 database = Database()
-library = Library()
+library = Library(database)
 library.add_book('lfsefejslkjf', 'slfhlesf')
