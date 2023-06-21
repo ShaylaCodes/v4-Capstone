@@ -255,7 +255,6 @@ class Library:
         VALUES (%s,%s);
         """,(title,member_id,))
         
-        
 
     def return_book(self, member_id, title):
         member = None
@@ -275,8 +274,8 @@ class Library:
                 print(f'Book not found.')
         else:
             print(f'Member not found.')
-        database.execute ("""
-        "member"
+        database.execute (f"""
+        "DELETE FROM borrowed_books WHERE book.id = {book.id}"
         """)
 
     def display_all_books(self):
