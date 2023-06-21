@@ -95,6 +95,8 @@ analysis.run()
 ## Contributors
 
 Put everyone that contributed to the project here. You should link to their Github profiles.
+https://github.com/RayyyRay - Ramon 
+https://github.com/ShaylaCodes - Shayla 
 
 ## Data Analysis and Visualization
 
