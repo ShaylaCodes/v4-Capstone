@@ -1,3 +1,7 @@
+#Welcome to our library! 
+#You will see some comments floating around explaining some of the concepts. 
+#You can find more information on the README.md file!
+
 from dotenv import load_dotenv
 import os
 import psycopg2
@@ -7,13 +11,13 @@ import numpy as np
 from datetime import date
 
 load_dotenv()
-
+# The lines above are importing different modules in Python that are used throughout the project.
 DB_HOST =os.getenv('DB_HOST')
 DB_NAME =os.getenv('DB_NAME')
 DB_PASSWORD=os.getenv('DB_PASSWORD')
 DB_USER =os.getenv('DB_USER')
 DB_PORT =os.getenv('DB_PORT')
-
+# This is connecting the database to the python script
 class Database:
     def __init__(self):
         self.conn = psycopg2.connect(
@@ -45,6 +49,7 @@ class Database:
             
     def __del__(self):
         self.conn.close()
+# The Database class is connecting the railway database and setting up the ability to add in queries efficiently in the upcoming functions.
 
 class Book:
     def __init__(self, title, author, category, status):
@@ -52,8 +57,10 @@ class Book:
         self.title = title
         self.author = author
         self.status = status
+
     def __str__(self):
         return f'Title: {self.title}, Author: {self.author}, Status: {self.status}'
+# This is creating the class named 'Book' and creating 4 arguments. To add on, it has a string function for readability.
 
 class Member:
     def __init__(self, member_id,first_name,last_name, join_date, database):
@@ -98,12 +105,14 @@ class Member:
 
         else:
             print(f'{self.name} did not borrow {book.title}.')
+# This is returning a book, if it has been borrowed, in order for it to be available again. 
 
     def __str__(self):
         borrowed_titles = ', '.join(
             [book.title for book in self.borrowed_books])
         return f'Member Name: {self.name}, Member ID: {self.member_id}, Borrowed Books: {borrowed_titles}'
-         
+# This function is ensuring it is readable for the human eye.
+
     def number_of_borrowed_books(self,query): 
         database.execute(query="""
         SELECT DATE_FORMAT(borrow_date,'%%Y-%%m') AS date,COUNT(*) AS num_borrowed_books
@@ -157,7 +166,7 @@ class Member:
         GROUP BY borrowed_books DESC
         LIMIT 1;
         """
-
+# The book class is connecting the functions to the database and carrying out a multitide of actions. 
 class Library:
         #Data Visualization
     def num_books_borrowed_top3_active(self): 
@@ -212,6 +221,7 @@ class Library:
         for member in members_data:
             members.append(Member(member[0], member[1], member[2], member[3], self.database))
         return members
+    # Demonstrates all members in the 'library_members' table
 
     def add_book(self, title, author, category):
         book = Book(title, author, category, 'Available')
@@ -222,6 +232,7 @@ class Library:
         INSERT INTO Books (author, title, status, category)
         VALUES ('{author}', '{title}', 'available', '{category}');
         """, which_query='w')
+    # This adds in a book into the table called 'Books' & also adds in the author, category, and if its available or not. 
 
     def remove_book(self, title):
         #query used to remove a book by inputting the title of the book
@@ -301,6 +312,8 @@ class Library:
 
     def display_all_members(self):
         print('\n'.join(str(member) for member in self.members))      
+# The library class is connecting the database to functions and carrying them out. The functions connect to the the data directly. 
+# This means that when you utilize those functions, it also changed the table in railway. 
 
 database = Database()
 library = Library(database)
