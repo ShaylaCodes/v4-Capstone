@@ -1,3 +1,7 @@
+#Welcome to our library! 
+#You will see some comments floating around explaining some of the concepts. 
+#You can find more information on the README.md file!
+
 from dotenv import load_dotenv
 import os
 import psycopg2
@@ -7,13 +11,13 @@ import numpy as np
 from datetime import date
 
 load_dotenv()
-
+# The lines above are importing different modules in Python that are used throughout the project.
 DB_HOST =os.getenv('DB_HOST')
 DB_NAME =os.getenv('DB_NAME')
 DB_PASSWORD=os.getenv('DB_PASSWORD')
 DB_USER =os.getenv('DB_USER')
 DB_PORT =os.getenv('DB_PORT')
-
+# This is connecting the database to the python script
 class Database:
     def __init__(self):
         self.conn = psycopg2.connect(
@@ -48,7 +52,7 @@ class Database:
     
     def __del__(self):
         self.conn.close()
-
+# The Database class is connecting the railway database and setting up the ability to add in queries efficiently in the upcoming functions.
 class Book:
     def __init__(self, title, author, category, status):
         self.category = category
@@ -159,7 +163,7 @@ class Member:
         GROUP BY borrowed_books DESC
         LIMIT 1;
         """
-
+# The book class is connecting the functions to the database and carrying out a multitide of actions. 
 class Library:
     
     def num_books_borrowed_top3_active(self): 
@@ -283,8 +287,7 @@ class Library:
 
     def display_all_members(self):
         print('\n'.join(str(member) for member in self.members))      
-
+# The library class is connecting the database to functions and carrying them out. The functions connect to the the data directly. 
+# This means that when you utilize those functions, it also changed the table in railway. 
 database = Database()
 library = Library(database)
-
-
