@@ -34,7 +34,7 @@ class Database:
                 self.conn.commit()
             print('The query was successful!')
         except (Exception, psycopg2.DatabaseError) as error:
-            print('Oops.. something went wrong.', query)
+            print('Oops.. something went wrong.',query)
             print(error)
         finally:
             if which_query == 'r':
@@ -42,10 +42,7 @@ class Database:
                     return self.cur.fetchall()
                 else:
                     return []
-            else:
-                 print('Oops.. something went wrong.')
-        
-    
+            
     def __del__(self):
         self.conn.close()
 
@@ -74,6 +71,7 @@ class Member:
             return borrowed_books
 
     def borrow_book(self, book):
+        borrow_date = date.today()
         if book.status == 'Available':
             book.status = 'Checked Out'
             self.borrowed_books.append(book)
@@ -87,7 +85,7 @@ class Member:
             #sql query to add a record to borrow books table
             query = f"""
             INSERT INTO borrowed_books (member_id, book_id, borrow_date)
-            VALUES ({self.member_id}, {book.id}, {datetime.datetime.now()})
+            VALUES ({self.member_id}, {book.id}, {borrow_date})
             """
         else:
             print(f'This book is currently borrowed by someone else.')
@@ -107,11 +105,11 @@ class Member:
         return f'Member Name: {self.name}, Member ID: {self.member_id}, Borrowed Books: {borrowed_titles}'
          
     def number_of_borrowed_books(self,query): 
-        query="""
+        database.execute(query="""
         SELECT DATE_FORMAT(borrow_date,'%%Y-%%m') AS date,COUNT(*) AS num_borrowed_books
         FROM borrowed_books
         GROUP BY DATE_FORMAT(borrow_date,'%Y-%m')
-        """
+        """)
     
     def num_active_members(self,query): 
         query="""
@@ -120,15 +118,16 @@ class Member:
         WHERE borrow_date <= return_date AND (return_date IS NULL OR return_date>= DATE_FORMAT(borrow_date, '%%Y-%%m-01'))
         GROUP BY month 
         """
-    
+        #Selcts the number of books from each category by using 
     def num_books_per_category(self,query):
         query="""
+        SELECT c.name_category, COUNT(*) AS num_books
         FROM books
         JOIN category c ON books.category = c.category
         JOIN borrowed_books bb ON books = bb.books
         GROUP BY c.name_category: 
         """
-
+        #Selects the top 3 most borrowed books from borrowed_books table by using the book_id and matching it with member_id
     def top_3_borrowed_books(self,query): 
         query ="""
         SELECT b.book_id , b.book_title, COUNT(*) AS borrowed_books 
@@ -138,7 +137,7 @@ class Member:
         GROUP BY borrow_count DESC 
         LIMIT 3;
         """
-    
+        #Selects the top 3 active members from borrowed_books table by using the member_id 
     def top_3_active_members(self,query): 
         query = """
         SELECT m.member_id, m.first_name, m.last_name, COUNT(*) AS borrowed_books 
@@ -146,10 +145,9 @@ class Member:
         JOIN borrowed_books bb ON m.member_id = bb.member_id 
         WHERE bb.return_date IS NOT NULL 
         GROUP BY m.member_id, m.first_name, m.last_name
-        GROUP BY borrowed_books DESC 
         LIMIT 3;
         """ 
-    
+        #Selects the most active member from borrowed_books table by using the member_id
     def most_active_member(self,query): 
         query ="""
         SELECT m.member_id, m.first_name, m.last_name, COUNT(*) AS borrowed_books 
@@ -161,27 +159,36 @@ class Member:
         """
 
 class Library:
-    
+        #Data Visualization
     def num_books_borrowed_top3_active(self): 
        # COUNT(member_id) to count number of books borrowed from table.
-        member_ids = [self.members[6],self.members[7],self.members[12]]
-        num_books_borrowed=[]
-        for member_id in member_ids:
-            query = f"""
-            SELECT COUNT(member_id) AS num_borrowed_books
-            FROM borrowed_books 
-            WHERE member_id = {member_id}
+        query = f"""
+        SELECT COUNT(b.member_id) AS num_borrowed_books, m.first_name, m.last_name
+        FROM borrowed_books b
+        INNER JOIN library_members m ON b.member_id = m.member_id
+        GROUP BY b.member_id,m.first_name, m.last_name
+        ORDER BY num_borrowed_books DESC
+        LIMIT 3;
         """
         results = self.database.execute(query)
-        if results:
-              num_books_borrowed.append(results[0][0])
-        else:
-              num_books_borrowed.append(0)
-            dsadadas
-        plt.bar(member_ids,num_books_borrowed) 
+        print(results)
+       
+        member_ids =[]
+        num_books_borrowed =[]
+       
+        for row in results:
+            borrowed_books = row[0]
+            first_name = row[1]
+            last_name = row[2]
+            
+        
+            member_ids.append(f"{first_name} {last_name}")
+            num_books_borrowed.append(borrowed_books)
+        
+        plt.bar(member_ids, num_books_borrowed)
         plt.xlabel("Top 3 Members")
         plt.ylabel("Books Borrowed")
-        plt.title("Top 3 active members")
+        plt.title("Top 3 Members with the Most Books Borrowed")
         plt.show()
         plt.savefig('bar-graph.svg',format='svg')
         
@@ -210,12 +217,14 @@ class Library:
         book = Book(title, author, category, 'Available')
         self.catalog.append(book)
         print(f'{book.title} was added to the catalog.')
+        #query to add a book into the book table by inserting the author, title and category of the book
         self.database.execute(f"""
         INSERT INTO Books (author, title, status, category)
         VALUES ('{author}', '{title}', 'available', '{category}');
         """, which_query='w')
 
     def remove_book(self, title):
+        #query used to remove a book by inputting the title of the book
         self.database.execute("DELETE FROM books WHERE title = %s",(title,),which_query='w')
         return "Book has been removed successfully."
     
@@ -225,6 +234,7 @@ class Library:
         self.members.append(member)
         print(f'{member.name} was registered.')
         [first_name, last_name] = name.split(" ")
+        #query to register a new member into library_members by inputting "member_id" and "name"
         self.database.execute(f"""
             INSERT INTO library_members (member_id, first_name, last_name, join_date)
             VALUES ('{member_id}', '{first_name}', '{last_name}', '{join_date}');
@@ -250,17 +260,14 @@ class Library:
                 print(f'Book not found.')
         else:
             print(f'Member not found.')
-
+        #query used to borrow a book from borrowed_books table by using your "member_id" and "book_id"
         self.database.execute("""
         INSERT INTO borrowed_books(member_id,book_id,borrow_date)
         VALUES (%s,%s,%s);
         """,(member_id,book_id,borrow_date), which_query='w')
        
-    
-        
-        
-
-    def return_book(self, member_id, title):
+    def return_book(self, member_id, book_id):
+        return_date = date.today()
         member = None
         for m in self.members:
             if m.member_id == member_id:
@@ -269,7 +276,7 @@ class Library:
         if member is not None:
             book = None
             for b in self.catalog:
-                if b.title == title:
+                if b.book_id == book_id:
                     book = b
                     break
             if book is not None:
@@ -278,10 +285,17 @@ class Library:
                 print(f'Book not found.')
         else:
             print(f'Member not found.')
-        database.execute ("""
-        "member"
+        #query updates the date at which you checked a book out and returns the book to the date of return.
+        query=(f"""
+         UPDATE borrowed_books
+         SET return_date = '{return_date}'
+         WHERE member_id= '{member_id}' AND book_id = '{book_id}'
         """)
-
+        self.database.execute(query, which_query='w')
+        
+        
+                
+    
     def display_all_books(self):
         print('\n'.join(str(book) for book in self.catalog))
 
@@ -290,4 +304,14 @@ class Library:
 
 database = Database()
 library = Library(database)
-library.borrow_book("301","Hatchet")
+#library.add_book("Hatchet","Mccoy","Adventure")- adds a book into books
+#library.register_member("member_id","name")- adds member_id and name to library_members
+#library.remove_book("book_title")- removes the book from book table by entering the title of the book
+#library.borrow_book("member_id","book_id")- borrows the book by using your "member_id" and "book_id"
+#library.return_book("member_id","book_id")- returns the book you borrowed from borrowed_books table by inputting your "member_id" and "book_id" and returns the 'return_date' to todays date
+#library.display_all_books()- displays all available books for checkout 
+#library.display_all_members()- displays all members in library_members 
+library.num_books_borrowed_top3_active()
+
+
+
