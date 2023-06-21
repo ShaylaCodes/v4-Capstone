@@ -208,6 +208,7 @@ class Library:
         for member in members_data:
             members.append(Member(member[0], member[1], member[2], member[3], self.database))
         return members
+    # Demonstrates all members in the 'library_members' table
 
     def add_book(self, title, author, category):
         book = Book(title, author, category, 'Available')
@@ -217,11 +218,13 @@ class Library:
         INSERT INTO Books (author, title, status, category)
         VALUES ('{author}', '{title}', 'available', '{category}');
         """, which_query='w')
+    # This adds in a book into the table called 'Books' & also adds in the author, category, and if its available or not. 
 
     def remove_book(self, title):
-        self.database.execute("DELETE FROM books WHERE title = %s",(title,),which_query='w')
+        self.database.execute("DELETE FROM Books WHERE title = %s",(title,),which_query='w')
         return "Book has been removed successfully."
-    
+    # This removes the books from the table called 'books'
+
     def register_member(self, name, member_id,join_date,database):
         join_date = date.today()
         member = Member(self,name, member_id,join_date, database)
@@ -232,10 +235,8 @@ class Library:
         INSERT INTO library_members (first_name, last_name, join_date)
         VALUES ('{first_name}', '{last_name}', '{join_date}');
         """)
-        
     
     def borrow_book(self, member_id, title,):
-        
         member = None
         for m in self.members:
             if m.member_id == member_id:
@@ -289,5 +290,7 @@ class Library:
         print('\n'.join(str(member) for member in self.members))      
 # The library class is connecting the database to functions and carrying them out. The functions connect to the the data directly. 
 # This means that when you utilize those functions, it also changed the table in railway. 
+
 database = Database()
 library = Library(database)
+# Creating an instance of the classes above ^^
