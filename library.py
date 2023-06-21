@@ -49,18 +49,20 @@ class Database:
             else:
                  print('Oops.. something went wrong.')
         
-    
     def __del__(self):
         self.conn.close()
 # The Database class is connecting the railway database and setting up the ability to add in queries efficiently in the upcoming functions.
+
 class Book:
     def __init__(self, title, author, category, status):
         self.category = category
         self.title = title
         self.author = author
         self.status = status
+
     def __str__(self):
         return f'Title: {self.title}, Author: {self.author}, Status: {self.status}'
+# This is creating the class named 'Book' and creating 4 arguments. To add on, it has a string function for readability.
 
 class Member:
     def __init__(self, member_id,first_name,last_name, join_date, database):
@@ -104,12 +106,14 @@ class Member:
 
         else:
             print(f'{self.name} did not borrow {book.title}.')
+# This is returning a book, if it has been borrowed, in order for it to be available again. 
 
     def __str__(self):
         borrowed_titles = ', '.join(
             [book.title for book in self.borrowed_books])
         return f'Member Name: {self.name}, Member ID: {self.member_id}, Borrowed Books: {borrowed_titles}'
-         
+# This function is ensuring it is readable for the human eye.
+
     def number_of_borrowed_books(self,query): 
         query="""
         SELECT DATE_FORMAT(borrow_date,'%%Y-%%m') AS date,COUNT(*) AS num_borrowed_books
