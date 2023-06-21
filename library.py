@@ -67,8 +67,6 @@ class Member:
             self.borrowed_books.append(book.book_id)
             return borrowed_books
 
-
-
     def borrow_book(self, book):
         if book.status == 'Available':
             book.status = 'Checked Out'
@@ -160,11 +158,11 @@ class Library:
     
     def num_books_borrowed_top3_active(self): 
        # COUNT(member_id) to count number of books borrowed from table.
-        member_ids = [self.member_id[6],self.member_id[7],self.member_id[12]]
+        member_ids = [self.members[6],self.members[7],self.members[12]]
         num_books_borrowed=[]
         for member_id in member_ids:
             query = f"""
-            COUNT(member_id) AS num_borrowed_books
+            SELECT COUNT(member_id) AS num_borrowed_books
             FROM borrowed_books 
             WHERE member_id = {member_id}
         """
@@ -173,18 +171,20 @@ class Library:
               num_books_borrowed.append(results[0][0])
         else:
               num_books_borrowed.append(0)
-
+            
         plt.bar(member_ids,num_books_borrowed) 
         plt.xlabel("Top 3 Members")
         plt.ylabel("Books Borrowed")
         plt.title("Top 3 active members")
-        plt.savefig('bar_plot.svg',format='svg')
         plt.show()
-        self.cur.execute()
+        plt.savefig('bar-graph.svg',format='svg')
+        
+   
+        
+
     def __init__(self,database):
         self.database = database 
         self.catalog = self.get_books()
-        
         self.members = self.get_members()
 
     def get_books(self):
@@ -284,4 +284,5 @@ class Library:
 
 database = Database()
 library = Library(database)
+
 
