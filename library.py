@@ -4,7 +4,7 @@ import psycopg2
 from psycopg2 import Error
 import matplotlib.pyplot as plt 
 import numpy as np 
-import datetime
+from datetime import date
 
 load_dotenv()
 
@@ -26,20 +26,26 @@ class Database:
         print( DB_HOST, DB_NAME, DB_USER, DB_PASSWORD, DB_PORT)
         self.cur = self.conn.cursor()
 
-    def execute(self,query,PARAM=None,which_query='r'):
+    def execute(self, query, PARAM=None, which_query='r'):
         try:
-            self.cur.execute(query,PARAM)
+            print("Executing query:", query)
+            self.cur.execute(query, PARAM)
+            if which_query == 'w':
+                self.conn.commit()
+            print('The query was successful!')
         except (Exception, psycopg2.DatabaseError) as error:
-            print('Oops..something went wrong.',query)
+            print('Oops.. something went wrong.', query)
             print(error)
         finally:
-            if which_query=='r':
-                return self.cur.fetchall()
-            if which_query=='w':
-               self.conn.commit()
-               print('The query was successful!') 
+            if which_query == 'r':
+                if self.cur.description is not None: 
+                    return self.cur.fetchall()
+                else:
+                    return []
             else:
-                print('Oops..something went wrong.')
+                 print('Oops.. something went wrong.')
+        
+    
     def __del__(self):
         self.conn.close()
 
@@ -53,11 +59,11 @@ class Book:
         return f'Title: {self.title}, Author: {self.author}, Status: {self.status}'
 
 class Member:
-    def __init__(self, member_id, first_name, last_name, join_date, database):
+    def __init__(self, member_id,first_name,last_name, join_date, database):
         self.database = database
         self.name = f'{first_name} {last_name}'
         self.member_id = member_id
-        self.borrowed_books = self.get_borrowed_books()
+        self.borrowed_books = []
         self.join_date = join_date
 
     def get_borrowed_books(self):
@@ -179,8 +185,6 @@ class Library:
         plt.show()
         plt.savefig('bar-graph.svg',format='svg')
         
-   
-        
 
     def __init__(self,database):
         self.database = database 
@@ -197,8 +201,10 @@ class Library:
 
     def get_members(self):
         members_data = self.database.execute("SELECT * FROM library_members")
+        members = []
         for member in members_data:
-            return Member(member[0], member[1], member[2], member[3], database)
+            members.append(Member(member[0], member[1], member[2], member[3], self.database))
+        return members
 
     def add_book(self, title, author, category):
         book = Book(title, author, category, 'Available')
@@ -210,27 +216,22 @@ class Library:
         """, which_query='w')
 
     def remove_book(self, title):
-        for book in self.catalog:
-            if book.title == title:
-                self.catalog.remove(book)
-                print(f'{book.title} was removed from the catalog.')
-                return
-        print(f'Book not found.')
-        self.database.execute("""
-        "DELETE FROM Books WHERE title = input('book being removed')";
-        """)
+        self.database.execute("DELETE FROM books WHERE title = %s",(title,),which_query='w')
+        return "Book has been removed successfully."
     
-    def register_member(self, name, member_id):
-        member = Member(name, member_id)
+    def register_member(self, name, member_id,join_date,database):
+        join_date = date.today()
+        member = Member(self,name, member_id,join_date, database)
         self.members.append(member)
         print(f'{member.name} was registered.')
         [first_name, last_name] = name.split(" ")
-        database.execute(f"""
-        "INSERT INTO library_members (first_name, last_name, join_date)
-        VALUES ({first_name}, {last_name}, {datetime.now()});
+        self.database.execute(f"""
+        INSERT INTO library_members (first_name, last_name, join_date)
+        VALUES ('{first_name}', '{last_name}', '{join_date}');
         """)
-
-    def borrow_book(self, member_id, title):
+        
+    
+    def borrow_book(self, member_id, title,):
         
         member = None
         for m in self.members:
@@ -250,9 +251,12 @@ class Library:
         else:
             print(f'Member not found.')
 
-        database.execute ( """
-        "INSERT INTO borrowed_books"
-        """)
+        database.execute("""
+        INSERT INTO borrowed_books (title,member_id)
+        VALUES (%s,%s);
+        """,(title,member_id,))
+        
+        
 
     def return_book(self, member_id, title):
         member = None
