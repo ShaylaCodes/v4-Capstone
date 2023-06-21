@@ -219,20 +219,20 @@ class Library:
         self.database.execute("DELETE FROM books WHERE title = %s",(title,),which_query='w')
         return "Book has been removed successfully."
     
-    def register_member(self, name, member_id,join_date,database):
+    def register_member(self,member_id,name,join_date):
         join_date = date.today()
         member = Member(self,name, member_id,join_date, database)
         self.members.append(member)
         print(f'{member.name} was registered.')
         [first_name, last_name] = name.split(" ")
         self.database.execute(f"""
-        INSERT INTO library_members (first_name, last_name, join_date)
-        VALUES ('{first_name}', '{last_name}', '{join_date}');
-        """)
+            INSERT INTO library_members (member_id, first_name, last_name, join_date)
+            VALUES ('{member_id}', '{first_name}', '{last_name}', '{join_date}');
+        """, which_query='w')
         
     
-    def borrow_book(self, member_id, title,):
-        
+    def borrow_book(self, member_id,book_id):
+        borrow_date = date.today()
         member = None
         for m in self.members:
             if m.member_id == member_id:
@@ -240,9 +240,9 @@ class Library:
                 break
         if member is not None:
             book = None
-            for b in self.catalog:
-                if b.title == title:
-                    book = b
+            for b_id in self.catalog:
+                if b_id.book_id == book_id:
+                    book = b_id
                     break
             if book is not None:
                 member.borrow_book(book)
@@ -251,10 +251,12 @@ class Library:
         else:
             print(f'Member not found.')
 
-        database.execute("""
-        INSERT INTO borrowed_books (title,member_id)
-        VALUES (%s,%s);
-        """,(title,member_id,))
+        self.database.execute("""
+        INSERT INTO borrowed_books(member_id,book_id,borrow_date)
+        VALUES (%s,%s,%s);
+        """,(member_id,book_id,borrow_date), which_query='w')
+       
+    
         
         
 
@@ -288,5 +290,4 @@ class Library:
 
 database = Database()
 library = Library(database)
-
-
+library.borrow_book("301","Hatchet")
