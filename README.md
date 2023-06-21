@@ -100,9 +100,35 @@ Put everyone that contributed to the project here. You should link to their Gith
 
 Describe the data analysis and visualization part of your project. What insights does it generate? How are these visualizations created? Include examples of the visualizations, if possible.
 
+The visualization is a bar graph that shows the number of books borrowed by each of the top three active members.
+
+The functions used 
+num_books_borrowed_top3_active()
+method:
+library class
+
+The bar graph displays the top three active users on the x-axis and the number of books borrowed on the y-axis.
+
+The code for the visualization and analysis can be found in Member class, 
+number_of_borrowed_books() 
+
+These analyses and vizualization provide valuable insights into books borrowing patterns, collection composition, and member activity.
+By visualizing and analyzing the data, the user can make decisions on how they'd like to manage the library and use different strategies to operate 
+the library.
+
+
 ## Error Handling
 
 Describe how your project handles errors. If there are known issues with your project, list them here.
+
+Data visualization - 
+The graph will now appear. although we're not getting a error code, we've tried different methods of getting this bar graph to show. 
+
+Railway/Database- 
+We were having trouble connecting to the database and fetching information from it. The error output was saying that the railway information from the .env file was incorrect.
+
+
+
 
 ## License
 
